@@ -13,13 +13,11 @@ export function Hero(): React.JSX.Element {
               <span className={styles.textHighlight}>made easy</span>
             </h1>
             <p className={styles.heroTagline}>
-              Easy, fast loans for feed and farm inputs — built for local fish
-              farmers in Nigeria and West Africa.
+            Easy, fast, and sustainable agricultural financing
+             — built for local farmers
             </p>
             <p className={styles.lead}>
-              We connect you with the right feed, fingerlings, and pond supplies.
-              Apply in minutes, get verified, and receive inputs through trusted
-              suppliers — repay when you harvest.
+            Connecting farmers with the right resources, loans, and insights to grow smarter, faster, and more sustainably.
             </p>
             <Link href="/farmer/signup" className={styles.buttonPillLarge}>
               Apply Now

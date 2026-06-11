@@ -13,21 +13,21 @@ const FINANCING_STEPS: readonly FinancingStep[] = [
     accentClass: styles.stepAccentRose as string,
     title: "Apply in minutes",
     description:
-      "Create your account and tell us about your ponds. Short form — no long paperwork.",
+      "Fill out a simple digital form with your farm details and loan requirements. No long paperwork.",
   },
   {
     id: "approved",
     accentClass: styles.stepAccentAmber as string,
     title: "Get approved fast",
     description:
-      "We check your profile and confirm how much feed and input credit you can access.",
+      "Our system evaluates your application using smart verification tools. Receive approval in real-time or timely.",
   },
   {
     id: "receive",
     accentClass: styles.stepAccentGreen as string,
-    title: "Receive inputs & start",
+    title: "Receive input and start",
     description:
-      "Approved farmers get feed, fingerlings, or other essentials from our supplier network.",
+      "We support you with feeds, inputs, or other farm essentials and grow your yield.",
   },
 ] as const;
 
