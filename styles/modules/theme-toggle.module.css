@@ -1,0 +1,40 @@
+.toggle,
+.toggleCompact {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 40px;
+  padding: 0 0.75rem;
+  border-radius: var(--radius-pill);
+  border: var(--border-subtle);
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--transition-smooth),
+    border-color var(--transition-smooth),
+    transform var(--transition-smooth);
+}
+
+.toggleCompact {
+  min-width: 40px;
+  padding: 0;
+}
+
+.toggle:hover,
+.toggleCompact:hover {
+  background: var(--surface-muted);
+  transform: translateY(-1px);
+}
+
+.icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.label {
+  letter-spacing: 0.02em;
+}

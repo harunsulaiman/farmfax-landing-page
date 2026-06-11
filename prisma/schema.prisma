@@ -1,0 +1,219 @@
+// FarmFax enterprise relational matrix — PostgreSQL with UUID primary keys.
+// Financial scale: Decimal columns enforce precision boundaries for credit/ledger amounts.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  SUPPLIER
+  FARMER
+}
+
+enum KycStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum CreditRequestStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  DISBURSED
+  REPAID
+  DEFAULTED
+}
+
+enum FulfillmentStatus {
+  PENDING
+  ACCEPTED
+  READY_FOR_PICKUP
+  PARTIALLY_FULFILLED
+  FULFILLED
+  CANCELLED
+}
+
+model User {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clerkId      String    @unique
+  email        String    @unique
+  phoneNumber  String    @unique
+  fullName           String?
+  profilePictureUrl  String?
+  passwordHash       String?
+  role               UserRole
+  kycStatus    KycStatus @default(UNVERIFIED)
+
+  farmerProfile   FarmerProfile?
+  supplierProfile SupplierProfile?
+  auditLogs       AuditLog[]
+  notifications   Notification[]
+
+  @@index([email])
+  @@index([role])
+  @@index([phoneNumber])
+}
+
+model FarmerProfile {
+  id               String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String  @unique @db.Uuid
+  user             User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  farmName         String
+  farmSizeHectares Decimal @db.Decimal(10, 2)
+  primaryCropType  String
+  creditLimit      Decimal @default(0.00) @db.Decimal(12, 2)
+  utilizedCredit   Decimal @default(0.00) @db.Decimal(12, 2)
+
+  creditRequests CreditRequest[]
+
+  @@index([userId])
+  @@index([farmName])
+}
+
+model SupplierProfile {
+  id               String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String  @unique @db.Uuid
+  user             User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName     String  @unique
+  tin              String? @unique
+  warehouseAddress String
+  isVerified       Boolean @default(false)
+
+  catalogItems CatalogItem[]
+  fulfillments Fulfillment[]
+
+  @@index([userId])
+  @@index([businessName])
+  @@index([isVerified])
+}
+
+model CatalogItem {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  supplierId      String          @db.Uuid
+  supplier        SupplierProfile @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  name            String
+  description     String?
+  category        String
+  sku             String          @unique
+  unitPrice       Decimal         @db.Decimal(10, 2)
+  quantityInStock Int
+  imageUrl        String?
+  imageUrls       String[]        @default([])
+  isActive        Boolean         @default(true)
+
+  creditRequestItems CreditRequestItem[]
+
+  @@index([supplierId])
+  @@index([category])
+  @@index([sku])
+  @@index([isActive])
+}
+
+model CreditRequest {
+  id           String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  farmerId     String              @db.Uuid
+  farmer       FarmerProfile       @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  status       CreditRequestStatus @default(DRAFT)
+  totalAmount  Decimal             @db.Decimal(12, 2)
+  interestRate Decimal             @db.Decimal(5, 2)
+  dueDate      DateTime
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  disbursedAt  DateTime?
+  repaidAt     DateTime?
+
+  items         CreditRequestItem[]
+  fulfillment   Fulfillment?
+  ledgerEntries CreditLedger[]
+
+  @@index([farmerId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model CreditRequestItem {
+  id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creditRequestId  String        @db.Uuid
+  creditRequest    CreditRequest @relation(fields: [creditRequestId], references: [id], onDelete: Cascade)
+  catalogItemId    String        @db.Uuid
+  catalogItem      CatalogItem   @relation(fields: [catalogItemId], references: [id], onDelete: Restrict)
+  quantity         Int
+  unitPriceAtOrder Decimal       @db.Decimal(10, 2)
+
+  @@index([creditRequestId])
+  @@index([catalogItemId])
+}
+
+model Fulfillment {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creditRequestId String            @unique @db.Uuid
+  creditRequest   CreditRequest     @relation(fields: [creditRequestId], references: [id], onDelete: Cascade)
+  supplierId      String            @db.Uuid
+  supplier        SupplierProfile   @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  status          FulfillmentStatus @default(PENDING)
+  verificationOtp String
+  otpExpiresAt    DateTime
+  deliveredAt     DateTime?
+
+  @@index([supplierId])
+  @@index([status])
+  @@index([verificationOtp])
+  @@index([creditRequestId])
+}
+
+model CreditLedger {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creditRequestId String        @db.Uuid
+  creditRequest   CreditRequest @relation(fields: [creditRequestId], references: [id], onDelete: Cascade)
+  amount          Decimal       @db.Decimal(12, 2)
+  entryType       String
+  referenceId     String?
+  createdAt       DateTime      @default(now())
+
+  @@index([creditRequestId])
+  @@index([entryType])
+  @@index([createdAt])
+  @@index([referenceId])
+}
+
+model AuditLog {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String?  @db.Uuid
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  ipAddress String?
+  userAgent String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model Notification {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String   @db.Uuid
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title           String
+  body            String
+  type            String
+  creditRequestId String?  @db.Uuid
+  read            Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+  @@index([creditRequestId])
+}
